@@ -1,113 +1,232 @@
-import Image from "next/image";
+'use client';
+
+import { useEffect, useRef, useState } from "react";
+import { useDebouncedCallback } from 'use-debounce';
+
+let score = {
+  perfect: 0,
+  great: 0,
+  good: 0,
+  bad: 0,
+  miss: 0
+}
 
 export default function Home() {
+  const directions = [
+    "up",
+    "down",
+    "left",
+    "right"
+  ];
+
+  const settings = {
+    delay: 30
+  }
+
+  const [startGame, setStartGame] = useState(false);
+  // const [gameOver, setGameOver] = useState(false);
+  // const [arrowPositions, setArrowPositions] = useState({
+  //   up: {
+  //     x: 0,
+  //   },
+  //   down: {
+  //     x: 0,
+  //   },
+  //   left: {
+  //     x: 0,
+  //   },
+  //   right: {
+  //     x: 0,
+  //   },
+  // });
+  const ArrowUp = useRef<HTMLButtonElement>(null);
+  const ArrowDown = useRef<HTMLButtonElement>(null);
+  const ArrowLeft = useRef<HTMLButtonElement>(null);
+  const ArrowRight = useRef<HTMLButtonElement>(null);
+  const game = useRef<HTMLDivElement>(null);
+
+  // 100ms debounce - might remove if this becomes problematic
+  const handleKeypress = useDebouncedCallback((e: KeyboardEvent) => {
+    setStartGame(true);
+
+    // Need refs
+    if (!ArrowUp.current || !ArrowDown.current || !ArrowLeft.current || !ArrowRight.current) return;
+    const closestUpArrow = document.querySelector<HTMLElement>('[data-dir="up"]');
+    const closestDownArrow = document.querySelector<HTMLElement>('[data-dir="down"]');
+    const closestLeftArrow = document.querySelector<HTMLElement>('[data-dir="left"]');
+    const closestRightArrow = document.querySelector<HTMLElement>('[data-dir="right"]');
+
+    if (e.key === "ArrowUp") {
+      console.log('up pressed');
+      if (closestUpArrow === null) return;
+      precision(closestUpArrow.getBoundingClientRect().y, ArrowUp.current.getBoundingClientRect().y, closestUpArrow);
+    } else if (e.key === "ArrowDown") {
+      console.log('down pressed');
+      if (closestDownArrow === null) return;
+      precision(closestDownArrow.getBoundingClientRect().y, ArrowDown.current.getBoundingClientRect().y, closestDownArrow);
+    } else if (e.key === "ArrowLeft") {
+      console.log('left pressed');
+      if (closestLeftArrow === null) return;
+      precision(closestLeftArrow.getBoundingClientRect().y, ArrowDown.current.getBoundingClientRect().y, closestLeftArrow);
+    } else if (e.key === "ArrowRight") {
+      console.log('right pressed');
+      if (closestRightArrow === null) return;
+      precision(closestRightArrow.getBoundingClientRect().y, ArrowDown.current.getBoundingClientRect().y, closestRightArrow);
+    }
+  }, 100);
+
+  const precision = (aPos: number, bPos: number, element: HTMLElement) => {
+    if (inRange(aPos, bPos - 5, bPos + 5)) {
+      score.perfect++;
+      console.log('perfect');
+      element.remove();
+      return 'Perfect';
+    } else if (inRange(aPos, bPos - 10, bPos + 10)) {
+      score.great++;
+      console.log('great');
+      element.remove();
+      return 'Great';
+    } else if (inRange(aPos, bPos - 15, bPos + 15)) {
+      score.good++;
+      console.log('good');
+      element.remove();
+      return 'Good';
+    } else if (inRange(aPos, bPos - 20, bPos + 20)) {
+      score.bad++;
+      console.log('bad');
+      element.remove();
+      return 'Bad';
+    }
+
+    return 'Not in range';
+  }
+
+  const inRange = (x: number, min: number, max: number) => {
+    return ((x - min) * (x - max) <= 0);
+  }
+
+  const moveArrows = () => {
+    const arrows = document.querySelectorAll<HTMLElement>('[ref="move"]');
+    for (const arrow of arrows) {
+      const position = arrow.getBoundingClientRect();
+
+      arrow.style.top = `${position.y - 1}px`;
+
+      // Remove and add a `miss` event
+      if (position.y <= - 42) {
+        arrow.remove();
+        console.log('missed arrow')
+        score.miss++;
+      }
+    }
+  }
+
+  const createArrow = () => {
+    if (!ArrowUp.current || !ArrowDown.current || !ArrowLeft.current || !ArrowRight.current) return;
+    const randomDirection = directions[Math.floor(Math.random() * directions.length)];
+    let text = '';
+    let left = 0;
+
+    if (randomDirection === 'up') {
+      text = '\&#8593;';
+      left = Number(ArrowUp.current.getBoundingClientRect().x + (ArrowUp.current.getBoundingClientRect().width / 2));
+    } else if (randomDirection === 'down') {
+      text = '\&#8595;';
+      left = Number(ArrowDown.current.getBoundingClientRect().x + (ArrowDown.current.getBoundingClientRect().width / 2));
+    } else if (randomDirection === 'left') {
+      text = '\&#8592;';
+      left = Number(ArrowLeft.current.getBoundingClientRect().x + (ArrowLeft.current.getBoundingClientRect().width / 2));
+    } else if (randomDirection === 'right') {
+      text = '\&#8594;';
+      left = Number(ArrowRight.current.getBoundingClientRect().x + (ArrowRight.current.getBoundingClientRect().width / 2));
+    }
+
+    if (game.current === null || text === '') return;
+
+    const arrow = document.createElement('span');
+    arrow.classList.add('absolute', 'p-2', 'text-center', '-translate-x-1/2');
+    arrow.setAttribute('ref', 'move');
+    arrow.setAttribute('data-dir', randomDirection);
+    arrow.innerHTML = text;
+    arrow.style.left = `${left}px`;
+    arrow.style.width = `${ArrowUp.current.getBoundingClientRect().width}px`;
+    game.current.appendChild(arrow);
+  }
+
+  const createGame = () => {
+    // if (!ArrowUp.current || !ArrowDown.current || !ArrowLeft.current || !ArrowRight.current) return;
+
+    // setArrowPositions({
+    //   up: {
+    //     x: Number(ArrowUp.current.getBoundingClientRect().x + (ArrowUp.current.getBoundingClientRect().width / 2)),
+    //   },
+    //   down: {
+    //     x: Number(ArrowDown.current.getBoundingClientRect().x + (ArrowUp.current.getBoundingClientRect().width / 2)),
+    //   },
+    //   left: {
+    //     x: Number(ArrowLeft.current.getBoundingClientRect().x + (ArrowUp.current.getBoundingClientRect().width / 2)),
+    //   },
+    //   right: {
+    //     x: Number(ArrowRight.current.getBoundingClientRect().x + (ArrowUp.current.getBoundingClientRect().width / 2)),
+    //   },
+    // });
+  }
+
+  useEffect(() => {
+    window.addEventListener('keydown', (e: KeyboardEvent) => { handleKeypress(e) });
+
+    return () => {
+      window.removeEventListener('keydown', (e: KeyboardEvent) => { });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!startGame) return;
+
+    createGame();
+    const createArrowsInterval = setInterval(() => {
+      createArrow();
+      console.log(score);
+    }, settings.delay * 50);
+
+    const moveArrowsInterval = setInterval(() => {
+      moveArrows();
+    }, settings.delay / 2);
+
+    return () => {
+      clearInterval(createArrowsInterval);
+      clearInterval(moveArrowsInterval);
+    }
+  }, [startGame]);
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
+    <main className="flex flex-col">
+      <div className="flex flex-row h-full">
+        <button
+          ref={ArrowLeft}
+          className="p-2 text-center border self-start"
+        >
+          <span>&#8592;</span>
+        </button>
+        <button
+          ref={ArrowUp}
+          className="p-2 text-center border self-start"
+        >
+          <span>&#8593;</span>
+        </button>
+        <button
+          ref={ArrowRight}
+          className="p-2 text-center border self-start"
+        >
+          <span>&#8594;</span>
+        </button>
+        <button
+          ref={ArrowDown}
+          className="p-2 text-center border self-start"
+        >
+          <span>&#8595;</span>
+        </button>
       </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+      <div className="" style={{ marginTop: 'calc(100vh - 42px)' }} ref={game}></div>
     </main>
   );
 }
