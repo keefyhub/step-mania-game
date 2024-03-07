@@ -24,21 +24,6 @@ export default function Home() {
   }
 
   const [startGame, setStartGame] = useState(false);
-  // const [gameOver, setGameOver] = useState(false);
-  // const [arrowPositions, setArrowPositions] = useState({
-  //   up: {
-  //     x: 0,
-  //   },
-  //   down: {
-  //     x: 0,
-  //   },
-  //   left: {
-  //     x: 0,
-  //   },
-  //   right: {
-  //     x: 0,
-  //   },
-  // });
   const ArrowUp = useRef<HTMLButtonElement>(null);
   const ArrowDown = useRef<HTMLButtonElement>(null);
   const ArrowLeft = useRef<HTMLButtonElement>(null);
@@ -98,6 +83,7 @@ export default function Home() {
       return 'Bad';
     }
 
+    console.log('arrow not in range');
     return 'Not in range';
   }
 
@@ -115,7 +101,7 @@ export default function Home() {
       // Remove and add a `miss` event
       if (position.y <= - 42) {
         arrow.remove();
-        console.log('missed arrow')
+        console.log('missed arrow');
         score.miss++;
       }
     }
@@ -154,22 +140,7 @@ export default function Home() {
   }
 
   const createGame = () => {
-    // if (!ArrowUp.current || !ArrowDown.current || !ArrowLeft.current || !ArrowRight.current) return;
-
-    // setArrowPositions({
-    //   up: {
-    //     x: Number(ArrowUp.current.getBoundingClientRect().x + (ArrowUp.current.getBoundingClientRect().width / 2)),
-    //   },
-    //   down: {
-    //     x: Number(ArrowDown.current.getBoundingClientRect().x + (ArrowUp.current.getBoundingClientRect().width / 2)),
-    //   },
-    //   left: {
-    //     x: Number(ArrowLeft.current.getBoundingClientRect().x + (ArrowUp.current.getBoundingClientRect().width / 2)),
-    //   },
-    //   right: {
-    //     x: Number(ArrowRight.current.getBoundingClientRect().x + (ArrowUp.current.getBoundingClientRect().width / 2)),
-    //   },
-    // });
+    console.log('game started');
   }
 
   useEffect(() => {
@@ -187,6 +158,13 @@ export default function Home() {
     const createArrowsInterval = setInterval(() => {
       createArrow();
       console.log(score);
+
+      if (score.miss >= 4) {
+        setStartGame(false);
+
+        alert('Game over, you missed too many arrows');
+        location.reload();
+      }
     }, settings.delay * 50);
 
     const moveArrowsInterval = setInterval(() => {
