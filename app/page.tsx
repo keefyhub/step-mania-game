@@ -41,19 +41,33 @@ export default function Home() {
     const closestLeftArrow = document.querySelector<HTMLElement>('[data-dir="left"]');
     const closestRightArrow = document.querySelector<HTMLElement>('[data-dir="right"]');
 
+    // Remove animations and cause reflow - https://css-tricks.com/restart-css-animation/
+    ArrowUp.current.classList.remove('animate-press');
+    ArrowUp.current.offsetHeight;
+    ArrowDown.current.classList.remove('animate-press');
+    ArrowDown.current.offsetHeight;
+    ArrowLeft.current.classList.remove('animate-press');
+    ArrowLeft.current.offsetHeight;
+    ArrowRight.current.classList.remove('animate-press');
+    ArrowRight.current.offsetHeight;
+
     if (e.key === "ArrowUp") {
+      ArrowUp.current.classList.add('animate-press');
       console.log('up pressed');
       if (closestUpArrow === null) return;
       precision(closestUpArrow.getBoundingClientRect().y, ArrowUp.current.getBoundingClientRect().y, closestUpArrow);
     } else if (e.key === "ArrowDown") {
+      ArrowDown.current.classList.add('animate-press');
       console.log('down pressed');
       if (closestDownArrow === null) return;
       precision(closestDownArrow.getBoundingClientRect().y, ArrowDown.current.getBoundingClientRect().y, closestDownArrow);
     } else if (e.key === "ArrowLeft") {
+      ArrowLeft.current.classList.add('animate-press');
       console.log('left pressed');
       if (closestLeftArrow === null) return;
       precision(closestLeftArrow.getBoundingClientRect().y, ArrowDown.current.getBoundingClientRect().y, closestLeftArrow);
     } else if (e.key === "ArrowRight") {
+      ArrowRight.current.classList.add('animate-press');
       console.log('right pressed');
       if (closestRightArrow === null) return;
       precision(closestRightArrow.getBoundingClientRect().y, ArrowDown.current.getBoundingClientRect().y, closestRightArrow);
@@ -162,6 +176,7 @@ export default function Home() {
       if (score.miss >= 4) {
         setStartGame(false);
 
+        console.log('Game over, you missed too many arrows');
         alert('Game over, you missed too many arrows');
         location.reload();
       }
