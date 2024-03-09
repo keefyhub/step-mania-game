@@ -1,17 +1,19 @@
 'use client';
 
 import { useEffect, useRef, useState } from "react";
-import { useDebouncedCallback } from 'use-debounce';
 
 let score = {
   perfect: 0,
   great: 0,
   good: 0,
   bad: 0,
-  miss: 0
-}
+  miss: 0,
+  combo: 0,
+  highestCombo: 0
+} as any;
 
 export default function Home() {
+
   const directions = [
     "up",
     "down",
@@ -20,7 +22,8 @@ export default function Home() {
   ];
 
   const settings = {
-    delay: 30
+    delay: 30,
+    missThreshold: 4
   }
 
   const [startGame, setStartGame] = useState(false);
@@ -30,8 +33,7 @@ export default function Home() {
   const ArrowRight = useRef<HTMLButtonElement>(null);
   const game = useRef<HTMLDivElement>(null);
 
-  // 100ms debounce - might remove if this becomes problematic
-  const handleKeypress = useDebouncedCallback((e: KeyboardEvent) => {
+  const handleKeypress = (e: KeyboardEvent) => {
     setStartGame(true);
 
     // Need refs
@@ -42,56 +44,59 @@ export default function Home() {
     const closestRightArrow = document.querySelector<HTMLElement>('[data-dir="right"]');
 
     // Remove animations and cause reflow - https://css-tricks.com/restart-css-animation/
-    ArrowUp.current.classList.remove('animate-press');
-    ArrowUp.current.offsetHeight;
-    ArrowDown.current.classList.remove('animate-press');
-    ArrowDown.current.offsetHeight;
-    ArrowLeft.current.classList.remove('animate-press');
-    ArrowLeft.current.offsetHeight;
-    ArrowRight.current.classList.remove('animate-press');
-    ArrowRight.current.offsetHeight;
-
     if (e.key === "ArrowUp") {
+      ArrowUp.current.classList.remove('animate-press');
+      ArrowUp.current.offsetHeight;
       ArrowUp.current.classList.add('animate-press');
       console.log('up pressed');
       if (closestUpArrow === null) return;
       precision(closestUpArrow.getBoundingClientRect().y, ArrowUp.current.getBoundingClientRect().y, closestUpArrow);
     } else if (e.key === "ArrowDown") {
+      ArrowDown.current.classList.remove('animate-press');
+      ArrowDown.current.offsetHeight;
       ArrowDown.current.classList.add('animate-press');
       console.log('down pressed');
       if (closestDownArrow === null) return;
       precision(closestDownArrow.getBoundingClientRect().y, ArrowDown.current.getBoundingClientRect().y, closestDownArrow);
     } else if (e.key === "ArrowLeft") {
+      ArrowLeft.current.classList.remove('animate-press');
+      ArrowLeft.current.offsetHeight;
       ArrowLeft.current.classList.add('animate-press');
       console.log('left pressed');
       if (closestLeftArrow === null) return;
-      precision(closestLeftArrow.getBoundingClientRect().y, ArrowDown.current.getBoundingClientRect().y, closestLeftArrow);
+      precision(closestLeftArrow.getBoundingClientRect().y, ArrowLeft.current.getBoundingClientRect().y, closestLeftArrow);
     } else if (e.key === "ArrowRight") {
+      ArrowRight.current.classList.remove('animate-press');
+      ArrowRight.current.offsetHeight;
       ArrowRight.current.classList.add('animate-press');
       console.log('right pressed');
       if (closestRightArrow === null) return;
-      precision(closestRightArrow.getBoundingClientRect().y, ArrowDown.current.getBoundingClientRect().y, closestRightArrow);
+      precision(closestRightArrow.getBoundingClientRect().y, ArrowRight.current.getBoundingClientRect().y, closestRightArrow);
     }
-  }, 100);
+  };
 
   const precision = (aPos: number, bPos: number, element: HTMLElement) => {
     if (inRange(aPos, bPos - 5, bPos + 5)) {
       score.perfect++;
+      score.combo++;
       console.log('perfect');
       element.remove();
       return 'Perfect';
     } else if (inRange(aPos, bPos - 10, bPos + 10)) {
       score.great++;
+      score.combo++;
       console.log('great');
       element.remove();
       return 'Great';
     } else if (inRange(aPos, bPos - 15, bPos + 15)) {
       score.good++;
+      score.combo++;
       console.log('good');
       element.remove();
       return 'Good';
     } else if (inRange(aPos, bPos - 20, bPos + 20)) {
       score.bad++;
+      score.combo++;
       console.log('bad');
       element.remove();
       return 'Bad';
@@ -117,13 +122,16 @@ export default function Home() {
         arrow.remove();
         console.log('missed arrow');
         score.miss++;
+        score.highestCombo = score.combo;
+        score.combo = 0;
       }
     }
   }
 
-  const createArrow = () => {
+  const createArrow = (direction: string | null = null, allow: boolean = true) => {
     if (!ArrowUp.current || !ArrowDown.current || !ArrowLeft.current || !ArrowRight.current) return;
-    const randomDirection = directions[Math.floor(Math.random() * directions.length)];
+    const randomNumber = Math.floor(Math.random() * directions.length);
+    const randomDirection = direction ?? directions[randomNumber];
     let text = '';
     let left = 0;
 
@@ -151,6 +159,17 @@ export default function Home() {
     arrow.style.left = `${left}px`;
     arrow.style.width = `${ArrowUp.current.getBoundingClientRect().width}px`;
     game.current.appendChild(arrow);
+
+    // 33.33% chance of generating a pair
+    const randomBool = Math.random() < 0.3;
+    const newDirections = [...directions];
+    delete newDirections[randomNumber];
+    const newRandomDirection = newDirections[Math.floor(Math.random() * newDirections.length)];
+
+    // Randomly create a 2nd arrow
+    if (randomBool && allow === true) {
+      createArrow(newRandomDirection, false);
+    }
   }
 
   const createGame = () => {
@@ -158,10 +177,10 @@ export default function Home() {
   }
 
   useEffect(() => {
-    window.addEventListener('keydown', (e: KeyboardEvent) => { handleKeypress(e) });
+    document.addEventListener('keydown', (e: KeyboardEvent) => { handleKeypress(e) });
 
     return () => {
-      window.removeEventListener('keydown', (e: KeyboardEvent) => { });
+      document.removeEventListener('keydown', (e: KeyboardEvent) => { });
     }
   }, []);
 
@@ -173,22 +192,38 @@ export default function Home() {
       createArrow();
       console.log(score);
 
-      if (score.miss >= 4) {
+      if (score.miss >= settings.missThreshold) {
         setStartGame(false);
 
         console.log('Game over, you missed too many arrows');
-        alert('Game over, you missed too many arrows');
-        location.reload();
+        console.log('Final score');
+        for (const property in score) {
+          console.log(`${property}: ${score[property]}`);
+        }
+        alert('Game over, you missed too many arrows. Reload and try again.');
+        // location.reload();
       }
     }, settings.delay * 50);
 
-    const moveArrowsInterval = setInterval(() => {
-      moveArrows();
-    }, settings.delay / 2);
+    // Replace moveArrowsInterval with requestAnimationFrame
+    // const moveArrowsInterval = setInterval(() => {
+    //   moveArrows();
+    // }, settings.delay / 2);
+
+    let lastTime: any;
+    function playAnimation(time: number) {
+      if (lastTime != null) {
+        moveArrows();
+      }
+
+      lastTime = time;
+      window.requestAnimationFrame(playAnimation)
+    }
+    window.requestAnimationFrame(playAnimation)
 
     return () => {
       clearInterval(createArrowsInterval);
-      clearInterval(moveArrowsInterval);
+      // clearInterval(moveArrowsInterval);
     }
   }, [startGame]);
   return (
