@@ -122,8 +122,12 @@ export default function Home() {
         arrow.remove();
         console.log('missed arrow');
         score.miss++;
-        score.highestCombo = score.combo;
+
+        if (score.combo >= score.highestCombo) {
+          score.highestCombo = score.combo;
+        }
         score.combo = 0;
+
       }
     }
   }
