@@ -180,6 +180,25 @@ export default function Home() {
     console.log('game started');
   }
 
+  const gameOver = () => {
+    setStartGame(false);
+
+    // Remove all remaining arrows
+    const arrows = document.querySelectorAll<HTMLElement>('[ref="move"]');
+    for (const arrow of arrows) {
+      arrow.remove();
+    }
+
+    console.log('Game over, you missed too many arrows');
+    console.log('Your final score');
+    for (const property in score) {
+      console.log(`${property}: ${score[property]}`);
+    }
+
+    alert('Game over, you missed too many arrows. Reload and try again.');
+    // location.reload();
+  }
+
   useEffect(() => {
     document.addEventListener('keydown', (e: KeyboardEvent) => { handleKeypress(e) });
 
@@ -197,37 +216,17 @@ export default function Home() {
       console.log(score);
 
       if (score.miss >= settings.missThreshold) {
-        setStartGame(false);
-
-        console.log('Game over, you missed too many arrows');
-        console.log('Final score');
-        for (const property in score) {
-          console.log(`${property}: ${score[property]}`);
-        }
-        alert('Game over, you missed too many arrows. Reload and try again.');
-        // location.reload();
+        gameOver();
       }
     }, settings.delay * 50);
 
-    // Replace moveArrowsInterval with requestAnimationFrame
-    // const moveArrowsInterval = setInterval(() => {
-    //   moveArrows();
-    // }, settings.delay / 2);
-
-    let lastTime: any;
-    function playAnimation(time: number) {
-      if (lastTime != null) {
-        moveArrows();
-      }
-
-      lastTime = time;
-      window.requestAnimationFrame(playAnimation)
-    }
-    window.requestAnimationFrame(playAnimation)
+    const moveArrowsInterval = setInterval(() => {
+      moveArrows();
+    }, settings.delay / 2);
 
     return () => {
       clearInterval(createArrowsInterval);
-      // clearInterval(moveArrowsInterval);
+      clearInterval(moveArrowsInterval);
     }
   }, [startGame]);
   return (
